@@ -1,6 +1,6 @@
-Proxydigger IP Address Browser
+Proxydigger
 
-1. What is does it do?
+1. What is it and what does it do?
 Proxydigger is a simple proxy address browser for Windows.  
 
 1.2. Features
