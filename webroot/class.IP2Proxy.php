@@ -769,28 +769,29 @@ class Database {
    * @return int
    */
   private static function ipBetween($version, $ip, $low, $high) {
-    if (4 === $version) {
-      // Use normal PHP ints
-      if ($low <= $ip) {
-        if ($ip < $high) {
-          return 0;
-        } else {
-          return 1;
-        }
-      } else {
-        return -1;
-      }
-    } else {
-      // Use BCMath
-      if (bccomp($low, $ip, 0) <= 0) {
-        if (bccomp($ip, $high, 0) <= -1) {
-          return 0;
-        } else {
-          return 1;
-        }
-      } else {
-        return -1;
-      }
+    switch($version) {
+        case 4:
+            // Use normal PHP ints
+            if ($low <= $ip && $ip < $high) {
+                return 0;
+            } else if ($low <= $ip){
+                return 1;
+            } else {
+                return -1;
+            }
+        break;
+        default:
+            // Use BCMath
+            if (bccomp($low, $ip, 0) <= 0) {
+                if (bccomp($ip, $high, 0) <= -1) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                return -1;
+            }
+        break;
     }
   }
 
@@ -1072,16 +1073,20 @@ class Database {
    * @return int|string|boolean
    */
   private function readIp($version, $pos) {
-    if (4 === $version) {
-      // Read a standard PHP int
-      return self::wrap32($this->readWord($pos));
-    } elseif (6 === $version) {
-      // Read as BCMath int (quad)
-      return $this->readQuad($pos);
-    } else {
-      // unrecognized
-      return false;
-    }
+	switch ($version) {
+		case 4:
+		   // Read a standard PHP int
+		   return self::wrap32($this->readWord($pos));
+		break;
+		case 6: 
+			// Read as BCMath int (quad)
+			return $this->readQuad($pos);
+		break;
+		default:
+			// unrecognized
+			return false;
+		break;
+	}
   }
 
   /**
@@ -1093,69 +1098,55 @@ class Database {
    * @return int|boolean
    */
   private function binSearch($version, $ipNumber) {
-    if (false === $version) {
-      // unrecognized version
-      return false;
-    }
 
-    // initialize fields
-    $base   = $this->ipBase[$version];
-    $offset = $this->offset[$version];
-    $width  = $this->columnWidth[$version];
-    $high   = $this->ipCount[$version];
-    $low    = 0;
+	// initialize fields
+	$width  = $this->columnWidth[$version];
+	$base   = $this->ipBase[$version];
+		
+	//hjlim
+	$indexBaseStart = $this->indexBaseAddr[$version];
+	if ($indexBaseStart > 0)
+	{
+		$ipNum1_2 = intval($ipNumber / 65536);
+		$indexPos = $indexBaseStart + ($ipNum1_2 << 3);
 
-  //hjlim
-  $indexBaseStart = $this->indexBaseAddr[$version];
-  if ($indexBaseStart > 0){
-    $indexPos = 0;
-    switch($version){
-      case 4:
-        $ipNum1_2 = intval($ipNumber / 65536);
-        $indexPos = $indexBaseStart + ($ipNum1_2 << 3);
+		$low = $this->readWord($indexPos);
+		$high = $this->readWord($indexPos + 4);
+	
+	} else {
+				
+		$low    = 0;
+		$high   = $this->ipCount[$version];
 
-        break;
-
-      case 6:
-        $ipNum1 = intval(bcdiv($ipNumber, bcpow('2', '112')));
-        $indexPos = $indexBaseStart + ($ipNum1 << 3);
-
-        break;
-
-      default:
-        return false;
-    }
-
-    $low = $this->readWord($indexPos);
-    $high = $this->readWord($indexPos + 4);
-  }
-
-    // as long as we can narrow down the search...
-  while ($low <= $high) {
-      $mid     = (int) ($low + (($high - $low) >> 1));
-
-    // Read IP ranges to get boundaries
-      $ip_from = $this->readIp($version, $base + $width * $mid);
-      $ip_to   = $this->readIp($version, $base + $width * ($mid + 1));
-
-      // determine whether to return, repeat on the lower half, or repeat on the upper half
-      switch (self::ipBetween($version, $ipNumber, $ip_from, $ip_to)) {
-        case 0:
-      return $base + $offset + $mid * $width;
-        case -1:
-          $high = $mid - 1;
-          break;
-        case 1:
-          $low  = $mid + 1;
-          break;
-      }
-    }
+	}
+	
+	$mid = ($low + $high) >> 1;
+		
+	// as long as we can narrow down the search...
+	while ($low <= $high) {                
+		$y = $base + $width * $mid;
+		if(self::wrap32($this->readWord($y)) <= $ipNumber) {                    
+			$low = $mid + 1;                    
+		} else {
+			$high = $mid - 1;
+		}
+		$mid = ($low + $high) >> 1;
+	}
+	
+	$this->idx=$mid;
+	if ($ipNumber >= self::wrap32($this->readWord($y))) {
+		return $y+$this->offset[$version];
+	}
+	$y-=$width;
+	if ($ipNumber >= self::wrap32($this->readWord($y))) {
+		return $y+$this->offset[$version];
+	}
 
     // nothing found
     return false;
   }
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //  Public interface  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1326,7 +1317,7 @@ class Database {
     // results are empty to begin with
     $results = [];
 
-    // treat each field in turn
+// treat each field in turn
     foreach ($afields as $afield) {
       switch ($afield) {
         // purposefully ignore self::ALL, we already dealt with it
@@ -1370,34 +1361,33 @@ class Database {
             $done[self::ISP]    = true;
           }
           break;
-    case self::PROXY_TYPE:
-          if (!$done[self::PROXY_TYPE]) {
-            $results[self::PROXY_TYPE] = $this->readProxyType($pointer);
-            $done[self::PROXY_TYPE]    = true;
-          }
-          break;
-    case self::IS_PROXY:
-          if (!$done[self::IS_PROXY]) {
-      // px1
-      if ($this->type == 0) {
-        $countryCode = $this->readCountryNameAndCode($pointer)[1];
+		case self::PROXY_TYPE:
+			  if (!$done[self::PROXY_TYPE]) {
+				$results[self::PROXY_TYPE] = $this->readProxyType($pointer);
+				$done[self::PROXY_TYPE]    = true;
+			  }
+			  break;
+		case self::IS_PROXY:
+			  if (!$done[self::IS_PROXY]) {
+		  // px1
+		  if ($this->type == 0) {
+			$countryCode = $this->readCountryNameAndCode($pointer)[1];
 
-        $results[self::IS_PROXY] = ($countryCode == '-') ? 0 : 1;
+			$results[self::IS_PROXY] = ($countryCode == '-') ? 0 : 1;
 
-        if (strlen($countryCode) > 2) {
-          $results[self::IS_PROXY] = -1;
-        }
-      }
-      else{
-        $proxyType = $this->readProxyType($pointer);
+			if (strlen($countryCode) > 2) {
+			  $results[self::IS_PROXY] = -1;
+			}
+		  }
+		  else{
+			$proxyType = $this->readProxyType($pointer);
 
-        $results[self::IS_PROXY] = ($proxyType == '-') ? 0 : (($proxyType == 'DCH') ? 2 : 1);
+			$results[self::IS_PROXY] = ($proxyType == '-') ? 0 : (($proxyType == 'DCH') ? 2 : 1);
 
-        if (strlen($proxyType) > 3) {
-          $results[self::IS_PROXY] = -1;
-        }
-      }
-
+			if (strlen($proxyType) > 3) {
+			  $results[self::IS_PROXY] = -1;
+			}
+		  }
             $done[self::IS_PROXY]    = true;
           }
           break;
@@ -1424,24 +1414,31 @@ class Database {
           $results[$afield] = self::FIELD_NOT_KNOWN;
       }
     }
-
+   
     // If we were asked for an array, or we have multiple results to return...
     if (is_array($fields) || count($results) > 1) {
-      // return array
-      if ($asNamed) {
-        // apply translations if needed
-        $return = [];
-        foreach ($results as $key => $val) {
-          if (array_key_exists($key, static::$names)) {
-            $return[static::$names[$key]] = $val;
-          } else {
-            $return[$key] = $val;
-          }
+        // return array
+        switch ($asNamed) {
+          case true:
+                return $results;
+          break;
+          case false:
+                      // apply translations if needed
+              $return = [];
+              $anames = array_flip(static::$names);
+              foreach ($results as $key => $val) {
+                switch (array_key_exists($key, $anames)) {
+                      case true:
+                          $return[$anames[$key]] = $val;
+                          break;
+                      case false:
+                          $return[$key] = $val;
+                          break;
+                    }
+              }
+              return $return;
+          break;
         }
-        return $return;
-      } else {
-        return $results;
-      }
     } else {
       // return a single value
       return array_values($results)[0];

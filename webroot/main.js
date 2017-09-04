@@ -455,7 +455,7 @@ Publisher.prototype = {
 		var i=0; var me=this;
         this.from = from || this.from;
         this.to = to || this.to;
-        this.direction=direction || "down";
+        this.direction = direction || "down";
 		this.xhr[i]= this.CreateRequestObject();		
 		if (this.xhr[i]) {
 			this.xhr[i].open('GET', 'ajax.php?from='
@@ -510,8 +510,8 @@ Publisher.prototype = {
 					this.from=Number(j[0].from);
 					this.to=Number(j[e].from)+this.step;
 				} else {
-					this.from=Number(j[e].from);
-					this.to=Number(j[0].from);
+					//this.from=Number(j[0].from-this.step);
+					//this.to=Number(j[e].from);
 				}
 				switch (this.direction) { 
 					case "search": {
@@ -566,8 +566,8 @@ Publisher.prototype = {
 					break;
 					case "up" : {					
 						var t = this.observers.count();
-						//for (var i=j.length-1;i>0;i--) {
-						for (var i=0,e=j.length;i<e;i++) {	
+						for (var i=j.length-1;i>0;i--) {
+						//for (var i=0,e=j.length;i<e;i++) {	
 							for (k=0;k<t;k++) {
 								  if (j[i].ipaddr==this.observers.observerList[k].ipaddr) {
 									  break;
