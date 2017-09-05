@@ -241,7 +241,7 @@ var Publisher = function (observers)
   this.seed = 768716276;
   this.tstart = 1000;
   this.tinterval = 1000000;
-  this.step = 256;
+  this.step = 256*256;
   this.range=(100*this.step)-this.step;
   this.ccvalue="All";
   this.cc = ["AU","CN","JP","TH","IN","MY","KR","SG","TW","HK","PH","VN","NO","FR","GB","NL","DE","US","ES","DK","SE","CZ","BE","FI","RU","IT","GR","AE","AT","ZA","IL","CH","QA","KZ","PT","SA","IR","LT","CA","MX","SY","UA","KW","BH","LB","OM","JO","IQ","TR","RO","GE","BR","AZ","ZM","ZW","PS","SK","RS","IS","HU","BG","SI","MD","MK","AO","LI","JE","HR","PL","BA","EE","LV","KG","IE","IM","MT","GI","LY","LU","AM","AR","VG","YE","BY","GP","MQ","GY","GU","MP","DO","VE","PR","VI","NZ","BD","PK","ID","NP","PG","CL","CO","MO","LK","EC","CR","KY","UY","EG","BB","BS","LC","DM","KH","TK","MV","AF","NC","FJ","MN","WF","AL","CY","UZ","BL","ME","SM","CD","GG","TJ","BM","VC","NG","BO","LR","KE","GH","TZ","MG","NA","CI","SD","CM","MW","MU","GA","MZ","ML","BJ","TD","BW","CV","RW","CG","UG","GM","LS","MA","DZ","GN","SZ","BF","SO","SL","NE","CF","TG","SS","BI","GQ","SC","SN","DJ","MR","ET","KM","IO","RE","TN","YT","LA","MM","BN","NR","VU","BT","WS","FM","PF","TL","TO","GL","FO","BZ","NU","KI","MH","PW","SB","TV","KP","PE","PY","GF","SR","GT","HN","NI","SV","PA","VA","AD","MC","ER","GW","ST","TM","AG","CU","GD","HT","JM","KN","TT","CW","AI","UM","AW","PM","SX","MF","TC","AX","NF","AQ","AS","BQ","GS"];
@@ -507,11 +507,15 @@ Publisher.prototype = {
 			e=j.length-1;
 			if (e>1 && e<100) {
 				if (this.direction=="down") {
-					this.from=Number(j[0].from);
-					this.to=Number(j[e].from)+this.step;
+					this.from=Number(j[0].from)+this.step;
+					this.to=Number(j[e].from);
+					//this.from+=this.range;
+					//this.to+=this.range;
 				} else {
-					//this.from=Number(j[0].from-this.step);
+					//this.from=Number(j[0].from)-this.range;
 					//this.to=Number(j[e].from);
+					this.from-=this.range;
+					this.to-=this.range;
 				}
 				switch (this.direction) { 
 					case "search": {

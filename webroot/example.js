@@ -70,7 +70,7 @@ window.onload = function ready () {
 				case "down": {					
 					//var page = Math.floor((a-100)/100)*Number(l.range) + Number(l.range)+Math.floor((a-100)/100)*Number(l.step);
 					if (t<=100) {
-						var page = Number(l.range)*5;
+						var page = Number(l.range)*10;
 					} else if (t<=200) {
 						var page =  Number(l.range)+2*Number(l.step);
 					}
@@ -78,7 +78,7 @@ window.onload = function ready () {
 					break;
 				};
 				case "up": {
-					l.Request(Number(l.from)-Number(l.range)*5,Number(l.from),"up");
+					l.Request(Number(l.from)-Number(l.range)*10,Number(l.from),"up");
 					break;
 				}
 				default: {
