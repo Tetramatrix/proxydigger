@@ -7,7 +7,6 @@ Proxydigger is a simple proxy address browser for Windows.
 - Supports the free IP2Proxy LITE IP-PROXYTYPE-COUNTRY-REGION-CITY-ISP (ip4 binary file) with millions of updated IP addresses.
 - Supports sorting of the view with 2 different orders (up and down) and to reset it.
 - Supports infinite scroll. Navigate millions of IP addresses with the right scrollbar.
-- Supports a filter with 4 different subnet masks (255.255.255.255, 255.255.255.0, 255.255.0.0,255.0.0.0).
 - Supports a filter with a country code.
 - Supports searching for an ip address.
 - Supports a sticky navigation bar.
